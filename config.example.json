@@ -1,0 +1,24 @@
+{
+  "_说明": "以下提供两种配置示例，选择其一复制为 config.json 使用",
+
+  "_配置1_云端API（如DeepSeek）": {
+    "api_key": "your-api-key-here",
+    "base_url": "https://api.deepseek.com/v1",
+    "model": "deepseek-chat",
+    "use_json_format": true
+  },
+
+  "_配置2_本地Ollama": {
+    "api_key": "",
+    "base_url": "http://localhost:11434/v1",
+    "model": "qwen2.5:14b",
+    "use_json_format": false
+  },
+
+  "api_key": "your-api-key-here",
+  "base_url": "https://api.deepseek.com/v1",
+  "model": "deepseek-chat",
+  "use_json_format": true,
+  "whisper_model": "large-v3",
+  "language": "zh"
+}
