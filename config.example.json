@@ -10,8 +10,8 @@
 
   "_配置2_本地Ollama": {
     "api_key": "",
-    "base_url": "http://localhost:11434/v1",
-    "model": "qwen2.5:14b",
+    "base_url": "http://localhost:11434",
+    "model": "qwen3:8b",
     "use_json_format": false
   },
 

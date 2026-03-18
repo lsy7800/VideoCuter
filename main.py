@@ -33,40 +33,61 @@ def main():
 
     config = load_config()
 
-    print("=" * 60)
-    print("步骤 1/4: 提取音频")
-    print("=" * 60)
-    audio_path = extract_audio(video_path, output_dir)
+    cache_dir = Path(output_dir) if output_dir else Path(video_path).parent
+    video_stem = Path(video_path).stem
+    transcript_file = cache_dir / f"{video_stem}.json"
+    analysis_file = cache_dir / f"{video_stem}.analysis.json"
 
-    print("\n" + "=" * 60)
-    print("步骤 2/4: 语音转文字")
-    print("=" * 60)
-    transcript = transcribe_audio(
-        audio_path,
-        model_size=config.get("whisper_model", "large-v3"),
-        language=config.get("language", "zh"),
-    )
+    if transcript_file.exists():
+        print("=" * 60)
+        print("步骤 1/4: 提取音频 [跳过 - 已有转录缓存]")
+        print("步骤 2/4: 语音转文字 [跳过 - 已有转录缓存]")
+        print("=" * 60)
+        with open(transcript_file, encoding="utf-8") as f:
+            transcript = json.load(f)
+        print(f"已从缓存加载转录结果: {transcript_file}")
+    else:
+        print("=" * 60)
+        print("步骤 1/4: 提取音频")
+        print("=" * 60)
+        audio_path = extract_audio(video_path, output_dir)
 
-    transcript_file = Path(audio_path).with_suffix(".json")
-    with open(transcript_file, "w", encoding="utf-8") as f:
-        json.dump(transcript, f, ensure_ascii=False, indent=2)
-    print(f"转录结果已保存: {transcript_file}")
+        print("\n" + "=" * 60)
+        print("步骤 2/4: 语音转文字")
+        print("=" * 60)
+        transcript = transcribe_audio(
+            audio_path,
+            model_size=config.get("whisper_model", "large-v3"),
+            language=config.get("language", "zh"),
+        )
 
-    print("\n" + "=" * 60)
-    print("步骤 3/4: AI 分析有价值片段")
-    print("=" * 60)
-    analysis = analyze_transcript(
-        transcript,
-        api_key=config.get("api_key", ""),
-        base_url=config["base_url"],
-        model=config.get("model", "deepseek-chat"),
-        use_json_format=config.get("use_json_format", True),
-    )
+        with open(transcript_file, "w", encoding="utf-8") as f:
+            json.dump(transcript, f, ensure_ascii=False, indent=2)
+        print(f"转录结果已保存: {transcript_file}")
 
-    analysis_file = Path(audio_path).with_suffix(".analysis.json")
-    with open(analysis_file, "w", encoding="utf-8") as f:
-        json.dump(analysis, f, ensure_ascii=False, indent=2)
-    print(f"分析结果已保存: {analysis_file}")
+    if analysis_file.exists():
+        print("\n" + "=" * 60)
+        print("步骤 3/4: AI 分析有价值片段 [跳过 - 已有分析缓存]")
+        print("=" * 60)
+        with open(analysis_file, encoding="utf-8") as f:
+            analysis = json.load(f)
+        print(f"已从缓存加载分析结果: {analysis_file}")
+    else:
+        print("\n" + "=" * 60)
+        print("步骤 3/4: AI 分析有价值片段")
+        print("=" * 60)
+        analysis = analyze_transcript(
+            transcript,
+            api_key=config.get("api_key", ""),
+            base_url=config["base_url"],
+            model=config.get("model", "deepseek-chat"),
+            use_json_format=config.get("use_json_format", True),
+        )
+
+        with open(analysis_file, "w", encoding="utf-8") as f:
+            json.dump(analysis, f, ensure_ascii=False, indent=2)
+        print(f"分析结果已保存: {analysis_file}")
+
     print(f"找到 {len(analysis['clips'])} 个有价值片段")
 
     for clip in analysis["clips"]:
