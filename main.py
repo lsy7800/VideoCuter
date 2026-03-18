@@ -59,10 +59,9 @@ def main():
             audio_path,
             model_size=config.get("whisper_model", "large-v3"),
             language=config.get("language", "zh"),
+            output_file=str(transcript_file),
         )
 
-        with open(transcript_file, "w", encoding="utf-8") as f:
-            json.dump(transcript, f, ensure_ascii=False, indent=2)
         print(f"转录结果已保存: {transcript_file}")
 
     if analysis_file.exists():
@@ -112,4 +111,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"\n程序异常退出: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
