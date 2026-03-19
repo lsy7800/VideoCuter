@@ -35,7 +35,7 @@ def cut_videos(
         ]
 
         print(f"正在切片 [{start:.1f}s -> {end:.1f}s]: {title}")
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
         if result.returncode != 0:
             print(f"  切片失败: {result.stderr[:200]}")
         else:
