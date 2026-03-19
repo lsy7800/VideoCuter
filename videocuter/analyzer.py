@@ -1,4 +1,5 @@
 import json
+import re
 
 from openai import OpenAI
 
@@ -54,7 +55,12 @@ def analyze_transcript(
     all_clips = []
     for i, chunk in enumerate(chunks):
         print(f"正在分析第 {i + 1}/{len(chunks)} 段文本...")
-        result = _analyze_chunk(client, chunk, model, use_json_format)
+        for attempt in range(2):
+            result = _analyze_chunk(client, chunk, model, use_json_format)
+            if result is not None:
+                break
+            if attempt == 0:
+                print("  JSON 解析失败，正在重试...")
         if result and "clips" in result:
             all_clips.extend(result["clips"])
 
@@ -93,6 +99,28 @@ def _split_transcript(text: str, max_chars: int) -> list[str]:
     return chunks
 
 
+def _extract_json(text: str) -> str | None:
+    """从模型返回的文本中提取 JSON 内容。"""
+    # 去除 markdown 代码块标记
+    text = re.sub(r"```json\s*", "", text)
+    text = re.sub(r"```\s*", "", text)
+    text = text.strip()
+
+    # 匹配最外层的 { ... }
+    depth = 0
+    start = -1
+    for i, ch in enumerate(text):
+        if ch == "{":
+            if depth == 0:
+                start = i
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0 and start != -1:
+                return text[start:i + 1]
+    return None
+
+
 def _analyze_chunk(client: OpenAI, chunk: str, model: str, use_json_format: bool = True) -> dict | None:
     user_message = f"请分析以下直播转录文本，找出有价值的片段：\n\n{chunk}"
 
@@ -114,12 +142,17 @@ def _analyze_chunk(client: OpenAI, chunk: str, model: str, use_json_format: bool
         return None
 
     if not use_json_format:
-        start = content.find("{")
-        end = content.rfind("}") + 1
-        if start != -1 and end > start:
-            content = content[start:end]
+        content = _extract_json(content)
+        if not content:
+            print(f"  警告: 无法从模型返回中提取 JSON")
+            return None
 
-    return json.loads(content)
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError as e:
+        print(f"  警告: JSON 解析失败: {e}")
+        print(f"  原始返回内容: {content[:200]}...")
+        return None
 
 
 def _merge_clips(clips: list[dict]) -> list[dict]:
